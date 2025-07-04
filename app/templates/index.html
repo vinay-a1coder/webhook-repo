@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Webhook Events</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>GitHub Repository Activity</h1>
+            <p>Real-time updates from your GitHub repositories</p>
+        </header>
+        
+        <main>
+            <div class="status-bar">
+                <span id="status">Connecting...</span>
+                <span id="last-update"></span>
+            </div>
+            
+            <div class="events-container">
+                <div id="events-list">
+                    <div class="loading">Loading events...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let eventsList = document.getElementById('events-list');
+        let statusElement = document.getElementById('status');
+        let lastUpdateElement = document.getElementById('last-update');
+
+        function fetchEvents() {
+            fetch('/api/events')
+                .then(response => response.json())
+                .then(events => {
+                    displayEvents(events);
+                    updateStatus('Connected', true);
+                })
+                .catch(error => {
+                    console.error('Error fetching events:', error);
+                    updateStatus('Connection Error', false);
+                });
+        }
+
+        function displayEvents(events) {
+            if (events.length === 0) {
+                eventsList.innerHTML = '<div class="no-events">No events yet. Make some changes to your repository!</div>';
+                return;
+            }
+
+            eventsList.innerHTML = events.map(event => `
+                <div class="event-item ${event.action}">
+                    <div class="event-icon">
+                        ${getEventIcon(event.action)}
+                    </div>
+                    <div class="event-content">
+                        <p class="event-message">${event.message}</p>
+                        <span class="event-time">${formatTime(event.timestamp)}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getEventIcon(action) {
+            switch(action) {
+                case 'push': return '📤';
+                case 'pull_request': return '🔄';
+                case 'merge': return '🔀';
+                default: return '📋';
+            }
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString();
+        }
+
+        function updateStatus(message, isConnected) {
+            statusElement.textContent = message;
+            statusElement.className = isConnected ? 'connected' : 'disconnected';
+            lastUpdateElement.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+        }
+
+        // Fetch events every 15 seconds
+        fetchEvents();
+        setInterval(fetchEvents, 15000);
+    </script>
+</body>
+</html>
