@@ -16,3 +16,7 @@
 2025-07-13 13:50:26,470 - app.extensions - INFO - Successfully retrieved 11 events from database
 2025-07-13 13:50:26,472 - app.webhook.routes - INFO - Successfully retrieved 11 events from database
 2025-07-13 13:50:26,474 - app.logging_config - INFO - Response: 200
+2025-07-13 10:09:00,051 - app - INFO - Flask application started successfully
+2025-07-13 10:09:00,053 - app - INFO - Starting Flask development server...
+2025-07-13 10:09:00,624 - app - INFO - Flask application started successfully
+2025-07-13 10:09:00,625 - app - INFO - Starting Flask development server...
