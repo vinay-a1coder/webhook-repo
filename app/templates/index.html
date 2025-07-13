@@ -57,11 +57,29 @@
                         ${getEventIcon(event.action)}
                     </div>
                     <div class="event-content">
-                        <p class="event-message">${event.message}</p>
+                        <p class="event-message">${generateEventMessage(event)}</p>
                         <span class="event-time">${formatTime(event.timestamp)}</span>
                     </div>
                 </div>
             `).join('');
+        }
+
+        function generateEventMessage(event) {
+            const formattedTime = formatTime(event.timestamp);
+            
+            switch(event.action) {
+                case 'push':
+                    return `"${event.author}" pushed to "${event.branch}" on ${formattedTime}`;
+                
+                case 'pull_request':
+                    return `"${event.author}" submitted a pull request from "${event.from_branch}" to "${event.to_branch}" on ${formattedTime}`;
+                
+                case 'merge':
+                    return `"${event.author}" merged "${event.from_branch}" into "${event.to_branch}" on ${formattedTime}`;
+                
+                default:
+                    return `"${event.author}" performed ${event.action} on ${formattedTime}`;
+            }
         }
 
         function getEventIcon(action) {
