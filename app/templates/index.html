@@ -93,7 +93,35 @@
 
         function formatTime(timestamp) {
             const date = new Date(timestamp);
-            return date.toLocaleString();
+            
+            const options = {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+                // timeZone: 'UTC'
+            };
+            
+            const formattedDate = date.toLocaleDateString('en-US', options);
+            const formattedTime = date.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+                // timeZone: 'UTC'
+            });
+            
+            // Split the date parts
+            const dateParts = formattedDate.split(',');
+            const dateOnly = dateParts[0].trim(); // "July 11"
+            const year = dateParts[1].trim(); // "2025"
+            
+            // Rearrange to get "11 July 2025"
+            const [month, day] = dateOnly.split(' ');
+            const rearrangedDate = `${day} ${month} ${year}`;
+            
+            return `${rearrangedDate} - ${formattedTime}`;
         }
 
         function updateStatus(message, isConnected) {

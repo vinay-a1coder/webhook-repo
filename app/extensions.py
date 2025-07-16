@@ -3,7 +3,7 @@ import logging
 import os
 from dotenv import load_dotenv
 from pymongo import MongoClient
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 load_dotenv()
 
@@ -42,16 +42,24 @@ class WebhookDB:
             logger.error(f"Error inserting event: {e}", exc_info=True)
             return None
     
-    def get_latest_events(self, limit=20):
-        """Get the latest events from the database"""
+    def get_latest_events(self, seconds=15):
+        """Get events from the last N seconds"""
         try:
-            logger.info(f"Fetching latest {limit} events from database...")
-            # Exclude _id field from the results
-            events = list(self.collection.find({}, {"_id": 0}).sort("timestamp", -1).limit(limit))
-            logger.info(f"Successfully retrieved {len(events)} events from database")
+            logger.info(f"Fetching events from the last {seconds} seconds...")
+            
+            # Calculate the cutoff time in UTC to match stored timestamps
+            cutoff_time = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(seconds=seconds)
+            
+            events = list(self.collection.find(
+                {"timestamp": {"$gte": cutoff_time}}, 
+                {"_id": 0}
+            ).sort("timestamp", -1))
+            
+            logger.info(f"Successfully retrieved {len(events)} events from the last {seconds} seconds")
             return events
+            
         except Exception as e:
-            logger.error(f"Error fetching events: {e}", exc_info=True)
+            logger.error(f"Error fetching recent events: {e}", exc_info=True)
             return []
     
     def close_connection(self):

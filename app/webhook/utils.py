@@ -1,12 +1,43 @@
 from flask import request
 from ..extensions import WebhookDB
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
+from dateutil import parser
 
 db = WebhookDB()
 
 logger = logging.getLogger(__name__)
 
+def parse_timestamp(timestamp_str, fallback_message="No timestamp found"):
+    """
+    Parse timestamp string to datetime object with UTC conversion
+    """
+    if timestamp_str:
+        try:
+            # Parse the timestamp string
+            timestamp = parser.parse(timestamp_str)
+            
+            # Always convert to UTC and make timezone-naive for consistency
+            if timestamp.tzinfo is not None:
+                # If it has timezone info, convert to UTC
+                timestamp_utc = timestamp.astimezone(timezone.utc)
+            else:
+                # If no timezone info, assume it's already UTC
+                timestamp_utc = timestamp.replace(tzinfo=timezone.utc)
+            
+            # Make it timezone-naive (remove timezone info but keep UTC time)
+            timestamp_final = timestamp_utc.replace(tzinfo=None)
+            
+            logger.debug(f"Parsed timestamp: {timestamp_str} -> {timestamp_final}")
+            return timestamp_final
+            
+        except Exception as e:
+            logger.warning(f"Failed to parse timestamp '{timestamp_str}': {e}, using current UTC time")
+            return datetime.utcnow()
+    else:
+        logger.debug(f"{fallback_message}, using current UTC time")
+        return datetime.utcnow()
+    
 def parse_webhook_data(payload):
     """Parse GitHub webhook payload and extract relevant information"""
     try:
@@ -31,10 +62,9 @@ def parse_push_event(payload):
     try:
         author = payload.get('head_commit', {}).get('author', {}).get('name', 'Unknown')
         branch = payload.get('ref', '').replace('refs/heads/', '')
-        timestamp = payload.get('head_commit', {}).get('timestamp')
-        if not timestamp:
-            logger.debug("No timestamp found in push event, using current time")
-            timestamp = datetime.utcnow().isoformat()
+        timestamp_str = payload.get('head_commit', {}).get('timestamp')
+
+        timestamp = parse_timestamp(timestamp_str, "No timestamp found in push event")
         
         result = {
             'action': 'push',
@@ -62,10 +92,9 @@ def parse_pull_request_event(payload):
             author = payload.get('pull_request', {}).get('user', {}).get('login', 'Unknown')
             from_branch = payload.get('pull_request', {}).get('head', {}).get('ref', 'Unknown')
             to_branch = payload.get('pull_request', {}).get('base', {}).get('ref', 'Unknown')
-            timestamp = payload.get('pull_request', {}).get('created_at')
-            if not timestamp:
-                logger.debug("No timestamp found in PR opened event, using current time")
-                timestamp = datetime.utcnow().isoformat()
+            timestamp_str = payload.get('pull_request', {}).get('created_at')
+
+            timestamp = parse_timestamp(timestamp_str, "No timestamp found in PR opened event")
             
             result = {
                 'action': 'pull_request',
@@ -83,10 +112,9 @@ def parse_pull_request_event(payload):
             author = payload.get('pull_request', {}).get('user', {}).get('login', 'Unknown')
             from_branch = payload.get('pull_request', {}).get('head', {}).get('ref', 'Unknown')
             to_branch = payload.get('pull_request', {}).get('base', {}).get('ref', 'Unknown')
-            timestamp = payload.get('pull_request', {}).get('merged_at')
-            if not timestamp:
-                logger.debug("No timestamp found in PR merge event, using current time")
-                timestamp = datetime.utcnow().isoformat()
+            timestamp_str = payload.get('pull_request', {}).get('merged_at')
+            
+            timestamp = parse_timestamp(timestamp_str, "No timestamp found in PR merge event")
             
             result = {
                 'action': 'merge',
